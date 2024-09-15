@@ -13,25 +13,20 @@ def main():
     output_dir = args.output_dir
     model_name = args.model
 
-    # Paths
-    audio_path = os.path.join(output_dir, 'audio.wav')
+    input_filename = os.path.splitext(os.path.basename(input_video_path))[0]
+    audio_path = os.path.join(output_dir, f'{input_filename}.audio.wav')
 
-    # Create output directory
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract audio
     print("Extracting audio...")
-    extract_audio(input_video_path, audio_path)
+    extract_audio(input_video_path, output_dir)
 
-    # Transcribe audio
     print("Transcribing audio...")
     result = transcribe_audio(audio_path, model_name=model_name)
 
-    # Save outputs
     print("Saving outputs...")
-    save_transcript(result, output_dir)
+    save_transcript(result, input_video_path, output_dir)
 
-    # Generate manifest
     input_args = vars(args)
     generate_manifest(input_args, input_video_path, output_dir)
 

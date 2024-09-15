@@ -5,16 +5,24 @@ import subprocess
 import datetime
 import whisper
 
-def extract_audio(input_video_path, output_audio_path):
+def extract_audio(input_video_path, output_dir):
     """
-    Extract the audio from a video file using FFmpeg.
+    Extract the audio from a video file using FFmpeg. 
+    The output audio file will have the same filename suffix as the input video.
 
     Args:
         input_video_path (str): The path to the input video file.
-        output_audio_path (str): The path to save the extracted audio file.
+        output_dir (str): The directory to save the extracted audio file.
     """
+    # Get input file name suffix
+    input_filename = os.path.splitext(os.path.basename(input_video_path))[0]
+    
+    # Create the output audio file path with the filename suffix
+    output_audio_path = os.path.join(output_dir, f'{input_filename}.audio.wav')
+
     command = [
         'ffmpeg',
+        '-y',  # Overwrite output files without asking
         '-i', input_video_path,
         '-vn',  # Disable video recording
         '-acodec', 'pcm_s16le',  # Audio codec
@@ -23,6 +31,7 @@ def extract_audio(input_video_path, output_audio_path):
         output_audio_path
     ]
     subprocess.run(command, check=True)
+    return output_audio_path
 
 def transcribe_audio(audio_path, model_name='base'):
     """
@@ -39,45 +48,52 @@ def transcribe_audio(audio_path, model_name='base'):
     result = model.transcribe(audio_path)
     return result
 
-def save_transcript(result, output_dir):
+def save_transcript(result, input_video_path, output_dir):
     """
-    Save the transcription results to JSON and text files.
+    Save the transcription results to JSON and text files, using the input filename as a suffix.
 
     Args:
         result (dict): The transcription result from Whisper.
+        input_video_path (str): The path to the input video file.
         output_dir (str): The directory to save the output files.
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Save transcript.json
-    transcript_json_path = os.path.join(output_dir, 'transcript.json')
+    # Get input file name suffix
+    input_filename = os.path.splitext(os.path.basename(input_video_path))[0]
+    
+    # Save transcript with filename suffix
+    transcript_json_path = os.path.join(output_dir, f'{input_filename}.transcript.json')
     with open(transcript_json_path, 'w') as f:
         json.dump(result, f, indent=4)
 
-    # Save transcript.txt
-    transcript_txt_path = os.path.join(output_dir, 'transcript.txt')
+    transcript_txt_path = os.path.join(output_dir, f'{input_filename}.transcript.txt')
     with open(transcript_txt_path, 'w') as f:
         f.write(result['text'])
 
 def generate_manifest(input_args, input_video_path, output_dir):
     """
-    Generate a manifest file containing metadata about the transcription process.
+    Generate a manifest file containing metadata about the transcription process, using the input filename as a suffix.
 
     Args:
         input_args (dict): The arguments used to run the program.
         input_video_path (str): The path to the input video file.
         output_dir (str): The directory where outputs are saved.
     """
+    # Get input file name suffix
+    input_filename = os.path.splitext(os.path.basename(input_video_path))[0]
+    
     manifest = {
         'input_args': input_args,
         'input_checksum': compute_checksum(input_video_path),
         'output_files': {
-            'transcript.json': compute_checksum(os.path.join(output_dir, 'transcript.json')),
-            'transcript.txt': compute_checksum(os.path.join(output_dir, 'transcript.txt')),
+            f'transcript.{input_filename}.json': compute_checksum(os.path.join(output_dir, f'{input_filename}.transcript.json')),
+            f'transcript.{input_filename}.txt': compute_checksum(os.path.join(output_dir, f'{input_filename}.transcript.txt')),
+            f'audio.{input_filename}.wav': compute_checksum(os.path.join(output_dir, f'{input_filename}.audio.wav')),
         },
         'timestamp': datetime.datetime.now().isoformat(),
     }
-    manifest_json_path = os.path.join(output_dir, 'manifest.json')
+    manifest_json_path = os.path.join(output_dir, f'{input_filename}.manifest.json')
     with open(manifest_json_path, 'w') as f:
         json.dump(manifest, f, indent=4)
 
@@ -93,7 +109,6 @@ def compute_checksum(file_path):
     """
     sha256_hash = hashlib.sha256()
     with open(file_path, 'rb') as f:
-        # Read and update hash in chunks of 4K
         for byte_block in iter(lambda: f.read(4096), b''):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
