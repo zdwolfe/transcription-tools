@@ -14,16 +14,14 @@ def concatenate_videos(input_video_paths, output_video_path):
         input_video_paths (list of str): List of paths to input video files.
         output_video_path (str): Path to save the concatenated video.
     """
-    # Create a temporary text file listing the input files
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as list_file:
         for path in input_video_paths:
             list_file.write(f"file '{path}'\n")
         list_file_path = list_file.name
 
-    # Use FFmpeg to concatenate videos
     command = [
         'ffmpeg',
-        '-y',  # Overwrite output files without asking
+        '-y', 
         '-f', 'concat',
         '-safe', '0',
         '-i', list_file_path,
@@ -32,7 +30,6 @@ def concatenate_videos(input_video_paths, output_video_path):
     ]
     subprocess.run(command, check=True)
 
-    # Remove the temporary list file
     os.remove(list_file_path)
 
 def extract_audio(input_video_path, output_audio_path):
@@ -45,12 +42,12 @@ def extract_audio(input_video_path, output_audio_path):
     """
     command = [
         'ffmpeg',
-        '-y',  # Overwrite output files without asking
+        '-y',
         '-i', input_video_path,
-        '-vn',  # Disable video recording
-        '-acodec', 'pcm_s16le',  # Audio codec
-        '-ar', '16000',          # Set audio sampling rate to 16kHz
-        '-ac', '1',              # Set number of audio channels to mono
+        '-vn',
+        '-acodec', 'pcm_s16le',
+        '-ar', '16000',
+        '-ac', '1',
         output_audio_path
     ]
     subprocess.run(command, check=True)
@@ -81,12 +78,10 @@ def save_transcript(result, combined_filename, output_dir):
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Save transcript.json
     transcript_json_path = os.path.join(output_dir, f'{combined_filename}.transcript.json')
     with open(transcript_json_path, 'w') as f:
         json.dump(result, f, indent=4)
 
-    # Save transcript.txt
     transcript_txt_path = os.path.join(output_dir, f'{combined_filename}.transcript.txt')
     with open(transcript_txt_path, 'w') as f:
         f.write(result['text'])
