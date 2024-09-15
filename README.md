@@ -24,6 +24,6 @@ docker build -t transcription-tools-gpu .
 ## Usage
 
 ```bash
-docker run --gpus all -ti -v "$PWD/data:/usr/data" transcription-tools-gpu --input /usr/data/video.mkv --output-dir /usr/data
+docker run --gpus all -ti -v "$PWD/data:/usr/data" transcription-tools-gpu --input /usr/data/video1.mkv --input /usr/data/video2.mkv --output-dir /usr/data
 ```
 

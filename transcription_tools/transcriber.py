@@ -3,23 +3,46 @@ import json
 import hashlib
 import subprocess
 import datetime
+import tempfile
 import whisper
 
-def extract_audio(input_video_path, output_dir):
+def concatenate_videos(input_video_paths, output_video_path):
     """
-    Extract the audio from a video file using FFmpeg. 
-    The output audio file will have the same filename suffix as the input video.
+    Concatenate multiple video files into one using FFmpeg.
+
+    Args:
+        input_video_paths (list of str): List of paths to input video files.
+        output_video_path (str): Path to save the concatenated video.
+    """
+    # Create a temporary text file listing the input files
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as list_file:
+        for path in input_video_paths:
+            list_file.write(f"file '{path}'\n")
+        list_file_path = list_file.name
+
+    # Use FFmpeg to concatenate videos
+    command = [
+        'ffmpeg',
+        '-y',  # Overwrite output files without asking
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', list_file_path,
+        '-c', 'copy',
+        output_video_path
+    ]
+    subprocess.run(command, check=True)
+
+    # Remove the temporary list file
+    os.remove(list_file_path)
+
+def extract_audio(input_video_path, output_audio_path):
+    """
+    Extract the audio from a video file using FFmpeg.
 
     Args:
         input_video_path (str): The path to the input video file.
-        output_dir (str): The directory to save the extracted audio file.
+        output_audio_path (str): The path to save the extracted audio file.
     """
-    # Get input file name suffix
-    input_filename = os.path.splitext(os.path.basename(input_video_path))[0]
-    
-    # Create the output audio file path with the filename suffix
-    output_audio_path = os.path.join(output_dir, f'{input_filename}.audio.wav')
-
     command = [
         'ffmpeg',
         '-y',  # Overwrite output files without asking
@@ -31,7 +54,6 @@ def extract_audio(input_video_path, output_dir):
         output_audio_path
     ]
     subprocess.run(command, check=True)
-    return output_audio_path
 
 def transcribe_audio(audio_path, model_name='base'):
     """
@@ -48,52 +70,48 @@ def transcribe_audio(audio_path, model_name='base'):
     result = model.transcribe(audio_path)
     return result
 
-def save_transcript(result, input_video_path, output_dir):
+def save_transcript(result, combined_filename, output_dir):
     """
-    Save the transcription results to JSON and text files, using the input filename as a suffix.
+    Save the transcription results to JSON and text files, using the combined filename.
 
     Args:
         result (dict): The transcription result from Whisper.
-        input_video_path (str): The path to the input video file.
+        combined_filename (str): The combined filename used for output files.
         output_dir (str): The directory to save the output files.
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Get input file name suffix
-    input_filename = os.path.splitext(os.path.basename(input_video_path))[0]
-    
-    # Save transcript with filename suffix
-    transcript_json_path = os.path.join(output_dir, f'{input_filename}.transcript.json')
+    # Save transcript.json
+    transcript_json_path = os.path.join(output_dir, f'{combined_filename}.transcript.json')
     with open(transcript_json_path, 'w') as f:
         json.dump(result, f, indent=4)
 
-    transcript_txt_path = os.path.join(output_dir, f'{input_filename}.transcript.txt')
+    # Save transcript.txt
+    transcript_txt_path = os.path.join(output_dir, f'{combined_filename}.transcript.txt')
     with open(transcript_txt_path, 'w') as f:
         f.write(result['text'])
 
-def generate_manifest(input_args, input_video_path, output_dir):
+def generate_manifest(input_args, input_video_paths, output_dir, combined_filename):
     """
-    Generate a manifest file containing metadata about the transcription process, using the input filename as a suffix.
+    Generate a manifest file containing metadata about the transcription process.
 
     Args:
         input_args (dict): The arguments used to run the program.
-        input_video_path (str): The path to the input video file.
+        input_video_paths (list of str): The paths to the input video files.
         output_dir (str): The directory where outputs are saved.
+        combined_filename (str): The combined filename used for output files.
     """
-    # Get input file name suffix
-    input_filename = os.path.splitext(os.path.basename(input_video_path))[0]
-    
     manifest = {
         'input_args': input_args,
-        'input_checksum': compute_checksum(input_video_path),
+        'input_checksums': {os.path.basename(path): compute_checksum(path) for path in input_video_paths},
         'output_files': {
-            f'transcript.{input_filename}.json': compute_checksum(os.path.join(output_dir, f'{input_filename}.transcript.json')),
-            f'transcript.{input_filename}.txt': compute_checksum(os.path.join(output_dir, f'{input_filename}.transcript.txt')),
-            f'audio.{input_filename}.wav': compute_checksum(os.path.join(output_dir, f'{input_filename}.audio.wav')),
+            f'{combined_filename}.transcript.json': compute_checksum(os.path.join(output_dir, f'{combined_filename}.transcript.json')),
+            f'{combined_filename}.transcript.txt': compute_checksum(os.path.join(output_dir, f'{combined_filename}.transcript.txt')),
+            f'{combined_filename}.audio.wav': compute_checksum(os.path.join(output_dir, f'{combined_filename}.audio.wav')),
         },
         'timestamp': datetime.datetime.now().isoformat(),
     }
-    manifest_json_path = os.path.join(output_dir, f'{input_filename}.manifest.json')
+    manifest_json_path = os.path.join(output_dir, f'{combined_filename}.manifest.json')
     with open(manifest_json_path, 'w') as f:
         json.dump(manifest, f, indent=4)
 
