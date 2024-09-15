@@ -1,6 +1,6 @@
 # Transcription Tools
 
-A Docker tool for transcribing screen-recording video files. The intended use of transcriptions is as input to other text analysis tools, such as LLM summarization or indexing.
+A Docker tool for transcribing video files with spoken words. The intended use of transcriptions is as input to other text analysis tools, such as LLM summarization or indexing.
 
 This is mostly a Docker wrapper around [OpenAI's Whisper](https://openai.com/index/whisper/).
 
