@@ -33,6 +33,6 @@ docker run --gpus all -ti -v "$PWD/data:/usr/data" transcription-tools-gpu --inp
 
 Will output:
 
-1. data/video1.manifest.json
-2. data/video1.transcript.json
-3. data/video1.transcript.json
+1. ``data/video1.manifest.json``
+2. ``data/video1.transcript.json``
+3. ``data/video1.transcript.txt``
