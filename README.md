@@ -22,13 +22,13 @@ This is mostly a Docker wrapper around [OpenAI's Whisper](https://openai.com/ind
 To build the Docker image, run:
 
 ```bash
-docker build -t transcription-tools-gpu .
+docker build -t transcription-tools-gpu ./transcription
 ```
 
 ## Usage
 
 ```bash
-docker run --gpus all -ti -v "$PWD/data:/usr/data" transcription-tools-gpu --input /usr/data/video1.mkv  --output-dir /usr/data
+docker run --gpus all -ti -v "$PWD/transcription/data:/usr/data" transcription-tools-gpu --input /usr/data/video.mkv  --output-dir /usr/data --model large-v3
 ```
 
 Will output:
